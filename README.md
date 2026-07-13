@@ -108,9 +108,3 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-## Deploying (GitHub Pages)
-
-1. Push this repo to GitHub (public).
-2. Settings → Pages → Deploy from branch → `main` / root.
-3. Wait ~1 minute, then use the published `https://<you>.github.io/<repo>/`
-   URL as the live demo link above.
