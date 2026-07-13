@@ -1,7 +1,8 @@
 # DeepDive · TakaPay Social Listening Dashboard
 
-**Live demo:** _add your deployed link here before submitting_
-**Repo:** _this repo_
+**Live demo:** https://tajwarchy.github.io/takapay-dashboard/
+**Repo:** https://github.com/tajwarchy/takapay-dashboard
+**Loom Video URL:** _add your deployed loom link here before submitting_
 
 A single-page dashboard that turns 660 raw social posts about TakaPay (a
 fictional mobile wallet) into something a non-technical brand manager can
