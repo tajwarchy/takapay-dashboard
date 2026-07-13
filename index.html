@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeepDive · TakaPay Social Listening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="vendor/chart.umd.js"></script>
+<style>
+  :root{
+    --bg:#F6F7F5;
+    --surface:#FFFFFF;
+    --ink:#10231C;
+    --ink-soft:#5B6B63;
+    --line:#E4E8E3;
+    --teal:#0E6E55;
+    --teal-soft:#E4F1EC;
+    --positive:#1D8A5E;
+    --negative:#B8452F;
+    --negative-soft:#FBEAE5;
+    --neutral:#8C978F;
+    --amber:#C98A1E;
+    --amber-soft:#FBF1DD;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;font-size:15px;line-height:1.5;}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0;letter-spacing:-0.01em;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .bn{font-family:'Noto Sans Bengali','Inter',sans-serif;}
+
+  header.top{position:sticky;top:0;z-index:10;background:rgba(246,247,245,0.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:16px 28px;}
+  .top-row{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;max-width:1180px;margin:0 auto;}
+  .brand{display:flex;align-items:baseline;gap:10px;}
+  .brand h1{font-size:20px;}
+  .brand .tag{font-size:12px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+  .period{font-size:12px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+
+  main{max-width:1180px;margin:0 auto;padding:24px 28px 80px;}
+
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);}
+  .filters label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);display:block;margin-bottom:3px;}
+  .filters select, .filters input{font-family:'Inter',sans-serif;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);}
+  .filters .field{display:flex;flex-direction:column;}
+  .filters .reset{margin-left:auto;background:none;border:1px solid var(--line);border-radius:6px;padding:7px 12px;font-size:13px;cursor:pointer;color:var(--ink-soft);}
+  .filters .reset:hover{background:var(--teal-soft);color:var(--teal);border-color:var(--teal);}
+  .filters .count{font-size:12px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;}
+  .kpi .label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);}
+  .kpi .value{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:500;margin-top:6px;}
+  .kpi.negative .value{color:var(--negative);}
+  .kpi.positive .value{color:var(--positive);}
+  .kpi .sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+
+  section{margin-bottom:28px;}
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
+  .section-head h2{font-size:17px;}
+  .section-head .note{font-size:12px;color:var(--ink-soft);}
+
+  .grid-2{display:grid;grid-template-columns:1.1fr 1.4fr;gap:16px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+  .chart-wrap{position:relative;height:260px;}
+
+  .spotlight{background:linear-gradient(180deg,var(--amber-soft),#fff 65%);border:1px solid #EBD9AE;border-radius:var(--radius);padding:22px;}
+  .spotlight .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);margin-bottom:6px;}
+  .spotlight h2{font-size:19px;margin-bottom:6px;}
+  .spotlight p.lede{color:var(--ink-soft);max-width:640px;margin:0 0 16px;font-size:13.5px;}
+  .subtype-bars{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+  .subtype-row{display:grid;grid-template-columns:220px 1fr 60px;align-items:center;gap:10px;font-size:13px;}
+  .subtype-track{background:#fff;border:1px solid var(--line);border-radius:5px;height:14px;overflow:hidden;}
+  .subtype-fill{height:100%;background:var(--amber);}
+  .subtype-count{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);text-align:right;}
+
+  .ticker{border-top:1px dashed #E2CE9C;padding-top:14px;}
+  .ticker-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:8px;}
+  .ticker-quote{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:13.5px;min-height:52px;transition:opacity .35s ease;}
+  .ticker-quote .meta{display:block;margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);}
+
+  .competitor-card{display:grid;grid-template-columns:200px 1fr;gap:20px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;align-items:center;}
+  .competitor-stat .big{font-family:'IBM Plex Mono',monospace;font-size:38px;color:var(--negative);}
+  .competitor-stat .cap{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .competitor-quotes{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .competitor-quotes .q{background:var(--negative-soft);border-radius:8px;padding:10px 12px;font-size:12.5px;}
+
+  table.topics{width:100%;border-collapse:collapse;font-size:13px;}
+  table.topics th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);border-bottom:1px solid var(--line);padding:6px 8px;}
+  table.topics td{padding:7px 8px;border-bottom:1px solid var(--line);}
+  table.topics tr:last-child td{border-bottom:none;}
+  .bar-cell{display:flex;height:14px;border-radius:3px;overflow:hidden;width:100%;min-width:140px;}
+  .bar-cell span{height:100%;}
+
+  footer.dataquality{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;font-size:13px;color:var(--ink-soft);}
+  footer.dataquality h3{font-size:13px;color:var(--ink);margin-bottom:8px;}
+  footer.dataquality ul{margin:0;padding-left:18px;}
+  footer.dataquality li{margin-bottom:4px;}
+
+  @media (max-width:860px){
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .grid-2{grid-template-columns:1fr;}
+    .competitor-card{grid-template-columns:1fr;}
+    .competitor-quotes{grid-template-columns:1fr;}
+    .subtype-row{grid-template-columns:1fr;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .ticker-quote{transition:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-row">
+    <div class="brand">
+      <h1>DeepDive</h1>
+      <span class="tag">social listening · TakaPay</span>
+    </div>
+    <div class="period mono" id="periodLabel">June 2026</div>
+  </div>
+</header>
+
+<main>
+
+  <div class="filters">
+    <div class="field">
+      <label for="fSentiment">Sentiment</label>
+      <select id="fSentiment">
+        <option value="all">All</option>
+        <option value="positive">Positive</option>
+        <option value="negative">Negative</option>
+        <option value="neutral">Neutral</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="fTopic">Topic</label>
+      <select id="fTopic"><option value="all">All topics</option></select>
+    </div>
+    <div class="field">
+      <label for="fFrom">From</label>
+      <input type="date" id="fFrom">
+    </div>
+    <div class="field">
+      <label for="fTo">To</label>
+      <input type="date" id="fTo">
+    </div>
+    <button class="reset" id="resetFilters">Reset</button>
+    <span class="count mono" id="filterCount"></span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="label">Posts in view</div>
+      <div class="value mono" id="kpiTotal">–</div>
+      <div class="sub" id="kpiTotalSub">of 650 brand mentions</div>
+    </div>
+    <div class="kpi negative">
+      <div class="label">Negative</div>
+      <div class="value mono" id="kpiNeg">–</div>
+      <div class="sub" id="kpiNegSub"></div>
+    </div>
+    <div class="kpi positive">
+      <div class="label">Positive</div>
+      <div class="value mono" id="kpiPos">–</div>
+      <div class="sub" id="kpiPosSub"></div>
+    </div>
+    <div class="kpi">
+      <div class="label">Avg. sentiment score</div>
+      <div class="value mono" id="kpiScore">–</div>
+      <div class="sub">0 (very negative) – 100 (very positive)</div>
+    </div>
+  </div>
+
+  <section id="overview">
+    <div class="section-head">
+      <h2>Overall sentiment picture</h2>
+      <span class="note">Excludes off-topic chatter · see data notes below</span>
+    </div>
+    <div class="grid-2">
+      <div class="card"><div class="chart-wrap"><canvas id="sentimentDonut"></canvas></div></div>
+      <div class="card"><div class="chart-wrap"><canvas id="trendLine"></canvas></div></div>
+    </div>
+  </section>
+
+  <section id="topics">
+    <div class="section-head">
+      <h2>What people are talking about</h2>
+      <span class="note">Volume and sentiment mix by topic</span>
+    </div>
+    <div class="card">
+      <table class="topics" id="topicsTable">
+        <thead><tr><th>Topic</th><th>Posts</th><th style="width:38%">Sentiment mix</th><th>Avg score</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="rootcause">
+    <div class="spotlight">
+      <div class="eyebrow">Our product call</div>
+      <h2>Failed transactions are the single biggest thing hurting TakaPay — and it splits into two very different fixes</h2>
+      <p class="lede">"Failed transaction" posts are a third of all brand mentions, more than any other topic, and they run deeply negative. But it's not one problem: people are either watching a transfer sit stuck for hours or days, or getting charged for a mobile recharge that never arrived. Those need different owners and different fixes, so we broke it apart instead of reporting one "failed transaction" number.</p>
+      <div class="subtype-bars" id="subtypeBars"></div>
+      <div class="ticker">
+        <div class="ticker-label">Real posts, in their own words</div>
+        <div class="ticker-quote" id="tickerQuote"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="competitor">
+    <div class="section-head">
+      <h2>Competitor spotlight — NgoodPay</h2>
+      <span class="note">Every post naming the competitor was negative toward TakaPay</span>
+    </div>
+    <div class="competitor-card">
+      <div class="competitor-stat">
+        <div class="big mono" id="compPct">–</div>
+        <div class="cap">of competitor-comparison posts favor NgoodPay over TakaPay</div>
+      </div>
+      <div class="competitor-quotes" id="compQuotes"></div>
+    </div>
+  </section>
+
+  <footer class="dataquality">
+    <h3>Notes on the data</h3>
+    <ul>
+      <li><strong>brand_mention</strong> was <code>True</code> for all 660 rows in the source file, so it carries no filtering signal and isn't used here.</li>
+      <li id="dqDupes"></li>
+      <li id="dqOffTopic"></li>
+      <li>Sentiment labels and scores agree closely with each other in this dataset (negative ≈ 6–30, neutral ≈ 45–60, positive ≈ 46–94), so they're used as given rather than re-scored.</li>
+    </ul>
+  </footer>
+
+</main>
+
+<script>
+const SENTIMENT_COLORS = { positive: '#1D8A5E', negative: '#B8452F', neutral: '#8C978F' };
+let ALL = [], META = {}, filtered = [];
+let tickerTimer = null, tickerIdx = 0, tickerPool = [];
+
+fetch('data.json')
+  .then(r => { if (!r.ok) throw new Error('data.json returned ' + r.status); return r.json(); })
+  .then(data => {
+    if (typeof Chart === 'undefined'){
+      throw new Error("Chart.js didn't load — check that vendor/chart.umd.js exists next to index.html and is being served (not blocked/404).");
+    }
+    init(data);
+  })
+  .catch(err => {
+    document.querySelector('main').insertAdjacentHTML('afterbegin',
+      `<div class="card" style="border-color:#B8452F;color:#B8452F;margin-bottom:16px;">
+        Couldn't load the dashboard: ${err.message}
+      </div>`);
+    console.error(err);
+  });
+
+function init(data){
+  META = data.meta;
+  ALL = data.records;
+
+  document.getElementById('kpiTotalSub').textContent = `of ${META.clean_total} brand mentions (${META.duplicates_removed} duplicate posts removed)`;
+  document.getElementById('dqDupes').innerHTML = `<strong>${META.duplicates_removed} exact duplicate posts</strong> (same text, different id) were removed before analysis — likely reposts or scrape noise, not independent opinions.`;
+  document.getElementById('dqOffTopic').innerHTML = `<strong>${META.off_topic_count} posts</strong> mention TakaPay only incidentally (traffic, food, weather, unrelated shopping chatter). They're kept in the raw set and viewable via the Topic filter, but excluded from the sentiment/topic figures above so they don't dilute the real signal.`;
+
+  const topics = [...new Set(ALL.map(r => r.topic))].sort();
+  const topicSel = document.getElementById('fTopic');
+  topics.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t; o.textContent = t.replace(/_/g,' ');
+    topicSel.appendChild(o);
+  });
+
+  ['fSentiment','fTopic','fFrom','fTo'].forEach(id =>
+    document.getElementById(id).addEventListener('change', render));
+  document.getElementById('resetFilters').addEventListener('click', () => {
+    document.getElementById('fSentiment').value = 'all';
+    document.getElementById('fTopic').value = 'all';
+    document.getElementById('fFrom').value = '';
+    document.getElementById('fTo').value = '';
+    render();
+  });
+
+  render();
+}
+
+function applyFilters(){
+  const sent = document.getElementById('fSentiment').value;
+  const topic = document.getElementById('fTopic').value;
+  const from = document.getElementById('fFrom').value;
+  const to = document.getElementById('fTo').value;
+
+  return ALL.filter(r => {
+    if (sent !== 'all' && r.sentiment !== sent) return false;
+    if (topic !== 'all' && r.topic !== topic) return false;
+    const day = r.timestamp.slice(0,10);
+    if (from && day < from) return false;
+    if (to && day > to) return false;
+    return true;
+  });
+}
+
+let donutChart, lineChart;
+
+function render(){
+  filtered = applyFilters();
+  document.getElementById('filterCount').textContent = `${filtered.length} posts match`;
+
+  // headline set: on-topic only, respects other filters
+  const onTopic = filtered.filter(r => !r.is_off_topic);
+  const total = onTopic.length;
+  const neg = onTopic.filter(r => r.sentiment === 'negative').length;
+  const pos = onTopic.filter(r => r.sentiment === 'positive').length;
+  const avgScore = total ? (onTopic.reduce((a,r)=>a+r.sentiment_score,0)/total) : 0;
+
+  document.getElementById('kpiTotal').textContent = total;
+  document.getElementById('kpiNeg').textContent = total ? Math.round(neg/total*100)+'%' : '–';
+  document.getElementById('kpiNegSub').textContent = `${neg} posts`;
+  document.getElementById('kpiPos').textContent = total ? Math.round(pos/total*100)+'%' : '–';
+  document.getElementById('kpiPosSub').textContent = `${pos} posts`;
+  document.getElementById('kpiScore').textContent = avgScore.toFixed(0);
+
+  renderDonut(onTopic);
+  renderTrend(onTopic);
+  renderTopics(onTopic);
+  renderRootCause(filtered);
+  renderCompetitor(filtered);
+}
+
+function renderDonut(rows){
+  const counts = {positive:0, negative:0, neutral:0};
+  rows.forEach(r => counts[r.sentiment]++);
+  const ctx = document.getElementById('sentimentDonut');
+  if (donutChart) donutChart.destroy();
+  donutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Positive','Negative','Neutral'],
+      datasets: [{ data:[counts.positive,counts.negative,counts.neutral],
+        backgroundColor:[SENTIMENT_COLORS.positive,SENTIMENT_COLORS.negative,SENTIMENT_COLORS.neutral],
+        borderWidth:2, borderColor:'#fff' }]
+    },
+    options: { plugins:{ legend:{ position:'bottom', labels:{ font:{family:'Inter'}, boxWidth:12 } },
+      title:{ display:true, text:'Sentiment split', font:{family:'Space Grotesk', size:13}, color:'#10231C', align:'start' } },
+      cutout:'62%' }
+  });
+}
+
+function renderTrend(rows){
+  const byDay = {};
+  rows.forEach(r => {
+    const d = r.timestamp.slice(0,10);
+    if (!byDay[d]) byDay[d] = {sum:0,n:0};
+    byDay[d].sum += r.sentiment_score; byDay[d].n++;
+  });
+  const days = Object.keys(byDay).sort();
+  const avgs = days.map(d => byDay[d].sum/byDay[d].n);
+
+  const ctx = document.getElementById('trendLine');
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: days.map(d=>d.slice(5)), datasets:[{
+      data: avgs, borderColor:'#0E6E55', backgroundColor:'rgba(14,110,85,0.08)',
+      fill:true, tension:0.3, pointRadius:2 }] },
+    options: { plugins:{ legend:{display:false},
+      title:{ display:true, text:'Daily average sentiment score', font:{family:'Space Grotesk', size:13}, color:'#10231C', align:'start' } },
+      scales:{ y:{ min:0, max:100, ticks:{font:{family:'IBM Plex Mono', size:10}} },
+               x:{ ticks:{font:{family:'IBM Plex Mono', size:9}, maxRotation:0, autoSkip:true, maxTicksLimit:10} } } }
+  });
+}
+
+function renderTopics(rows){
+  const byTopic = {};
+  rows.forEach(r => {
+    if (!byTopic[r.topic]) byTopic[r.topic] = {positive:0,negative:0,neutral:0,sum:0,n:0};
+    byTopic[r.topic][r.sentiment]++;
+    byTopic[r.topic].sum += r.sentiment_score;
+    byTopic[r.topic].n++;
+  });
+  const rowsSorted = Object.entries(byTopic).sort((a,b)=>b[1].n-a[1].n);
+  const tbody = document.querySelector('#topicsTable tbody');
+  tbody.innerHTML = '';
+  rowsSorted.forEach(([topic, c]) => {
+    const tr = document.createElement('tr');
+    const pPos = c.n ? c.positive/c.n*100 : 0;
+    const pNeg = c.n ? c.negative/c.n*100 : 0;
+    const pNeu = c.n ? c.neutral/c.n*100 : 0;
+    tr.innerHTML = `
+      <td>${topic.replace(/_/g,' ')}</td>
+      <td class="mono">${c.n}</td>
+      <td><div class="bar-cell">
+        <span style="width:${pPos}%;background:${SENTIMENT_COLORS.positive}"></span>
+        <span style="width:${pNeu}%;background:${SENTIMENT_COLORS.neutral}"></span>
+        <span style="width:${pNeg}%;background:${SENTIMENT_COLORS.negative}"></span>
+      </div></td>
+      <td class="mono">${(c.sum/c.n).toFixed(0)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderRootCause(rows){
+  const ft = rows.filter(r => r.topic === 'failed_transaction');
+  const bySub = {};
+  ft.forEach(r => { bySub[r.subtype] = (bySub[r.subtype]||0) + 1; });
+  const max = Math.max(1, ...Object.values(bySub));
+  const order = ['Money sent but stuck / not received','Deducted but recharge failed','Other'];
+  const container = document.getElementById('subtypeBars');
+  container.innerHTML = '';
+  order.filter(k => bySub[k] !== undefined).forEach(k => {
+    const n = bySub[k];
+    const row = document.createElement('div');
+    row.className = 'subtype-row';
+    row.innerHTML = `<div>${k}</div>
+      <div class="subtype-track"><div class="subtype-fill" style="width:${n/max*100}%"></div></div>
+      <div class="subtype-count">${n} posts</div>`;
+    container.appendChild(row);
+  });
+  if (ft.length === 0){
+    container.innerHTML = '<div style="font-size:13px;color:var(--ink-soft)">No failed-transaction posts in the current filter.</div>';
+  }
+
+  tickerPool = ft;
+  tickerIdx = 0;
+  clearInterval(tickerTimer);
+  showTicker();
+  if (tickerPool.length > 1){
+    tickerTimer = setInterval(showTicker, 4200);
+  }
+}
+
+function showTicker(){
+  const el = document.getElementById('tickerQuote');
+  if (!tickerPool.length){
+    el.innerHTML = '<span style="color:var(--ink-soft)">No matching posts to quote.</span>';
+    return;
+  }
+  const r = tickerPool[tickerIdx % tickerPool.length];
+  tickerIdx++;
+  el.style.opacity = 0;
+  setTimeout(() => {
+    const isBn = /[\u0980-\u09FF]/.test(r.text);
+    el.innerHTML = `<span class="${isBn ? 'bn' : ''}">${escapeHtml(r.text)}</span>
+      <span class="meta">${r.platform} · ${r.subtype || r.topic} · sentiment ${r.sentiment_score}/100</span>`;
+    el.style.opacity = 1;
+  }, 150);
+}
+
+function renderCompetitor(rows){
+  const comp = rows.filter(r => r.topic === 'competitor');
+  const neg = comp.filter(r => r.sentiment === 'negative').length;
+  document.getElementById('compPct').textContent = comp.length ? Math.round(neg/comp.length*100)+'%' : '–';
+  const quotesEl = document.getElementById('compQuotes');
+  quotesEl.innerHTML = '';
+  shuffle(comp).slice(0,4).forEach(r => {
+    const isBn = /[\u0980-\u09FF]/.test(r.text);
+    const div = document.createElement('div');
+    div.className = 'q' + (isBn ? ' bn' : '');
+    div.textContent = r.text;
+    quotesEl.appendChild(div);
+  });
+  if (comp.length === 0){
+    quotesEl.innerHTML = '<div style="font-size:13px;color:var(--ink-soft)">No competitor-topic posts in the current filter.</div>';
+  }
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length -1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+</script>
+
+</body>
+</html>
